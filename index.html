@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Management Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #333;
+            color: white;
+            position: fixed;
+            top: 0;
+            left: -250px;
+            height: 100%;
+            overflow-y: auto;
+            transition: 0.3s;
+            padding-top: 60px;
+        }
+        .sidebar a {
+            padding: 15px 20px;
+            text-decoration: none;
+            color: white;
+            display: block;
+        }
+        .sidebar a:hover {
+            background-color: #575757;
+        }
+        .open-btn {
+            font-size: 20px;
+            cursor: pointer;
+            color: #333;
+            padding: 15px;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+        }
+        .content {
+            margin-left: 0;
+            transition: margin-left 0.3s;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto; /* Make content area scrollable */
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        input, button, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        .close-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .bot-list {
+            margin-top: 20px;
+        }
+        .bot-item {
+            background-color: #2a3c5b; /* Background color for the bot item */
+            border: 1px solid #007bff; /* Border color */
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            color: #ffffff; /* Text color */
+        }
+        .bot-item img {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+        }
+        .status-active {
+            color: #28a745; /* Green for active */
+        }
+        .status-inactive {
+            color: #dc3545; /* Red for inactive */
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <a href="javascript:void(0)" onclick="toggleSidebar()" style="text-align:right; padding-right: 20px;">&times;</a>
+    <h2 style="text-align: center;">Quick Actions</h2>
+    <a href="javascript:void(0)" onclick="openCreateBotModal()">Create Bot</a>
+</div>
+
+<div class="open-btn" onclick="toggleSidebar()">&#9776;</div>
+
+<div class="content" id="content">
+    <div class="container">
+        <h1>Client Management Dashboard</h1>
+        <div id="remainingLicenses" style="margin-bottom: 20px;">
+            Remaining License Keys: <span id="remainingCount">100</span>
+        </div>
+        <div id="botList" class="bot-list"></div>
+    </div>
+</div>
+
+<!-- Modal for creating bot -->
+<div class="modal" id="createBotModal">
+    <div class="modal-content">
+        <h2>Create Bot</h2>
+        <form id="createBotForm" onsubmit="submitBotForm(event)">
+            <input type="text" id="botName" placeholder="Bot Name" required>
+            <input type="text" id="botDescription" placeholder="Bot Description" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="file" id="icon" accept="image/*" required>
+            <label for="licenseDuration">License Duration:</label>
+            <select id="licenseDuration" required>
+                <option value="1 week">1 Week</option>
+                <option value="3 weeks">3 Weeks</option>
+                <option value="3 months">3 Months</option>
+                <option value="1 year">1 Year</option>
+                <option value="lifetime">Lifetime</option>
+            </select>
+            <button type="submit">Create Bot</button>
+        </form>
+        <button class="close-btn" onclick="closeCreateBotModal()">Close</button>
+    </div>
+</div>
+
+<script>
+    const bots = [];
+    let remainingKeys = 100; // Starting count of license keys
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const content = document.getElementById("content");
+        if (sidebar.style.left === "0px") {
+            sidebar.style.left = "-250px";
+            content.style.marginLeft = "0";
+        } else {
+            sidebar.style.left = "0";
+            content.style.marginLeft = "250px";
+        }
+    }
+
+    function openCreateBotModal() {
+        document.getElementById("createBotModal").style.display = "flex";
+    }
+
+    function closeCreateBotModal() {
+        document.getElementById("createBotModal").style.display = "none";
+    }
+
+    function generateLicenseKey() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let key = '';
+        for (let i = 0; i < 16; i++) {
+            if (i > 0 && i % 4 === 0) key += '-';
+            key += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return key;
+    }
+
+    function generateMentorID() {
+        return 'MTR' + Math.floor(1000 + Math.random() * 9000);
+    }
+
+    function getExpirationDate(duration) {
+        const now = new Date();
+        switch (duration) {
+            case '1 week':
+                now.setDate(now.getDate() + 7);
+                break;
+            case '3 weeks':
+                now.setDate(now.getDate() + 21);
+                break;
+            case '3 months':
+                now.setMonth(now.getMonth() + 3);
+                break;
+            case '1 year':
+                now.setFullYear(now.getFullYear() + 1);
+                break;
+            case 'lifetime':
+                return 'Lifetime';
+        }
+        return now.toLocaleDateString();
+    }
+
+    function submitBotForm(event) {
+        event.preventDefault();
+
+        if (remainingKeys <= 0) {
+            alert("No remaining license keys available.");
+            return;
+        }
+
+        const botName = document.getElementById("botName").value;
+        const botDescription = document.getElementById("botDescription").value;
+        const email = document.getElementById("email").value;
+        const iconInput = document.getElementById("icon");
+        const iconFile = iconInput.files[0];
+        const licenseDuration = document.getElementById("licenseDuration").value;
+
+        const licenseKey = generateLicenseKey();
+        const mentorId = generateMentorID();
+        const expirationDate = getExpirationDate(licenseDuration);
+        const isActive = true; // New bots are active by default
+
+        const bot = {
+            botName,
+            botDescription,
+            email,
+            licenseKey,
+            mentorId,
+            licenseDuration,
+            expirationDate,
+            isActive,
+            icon: URL.createObjectURL(iconFile),
+        };
+
+        bots.push(bot);
+        remainingKeys--;
+        document.getElementById("remainingCount").innerText = remainingKeys; // Update remaining keys display
+        displayBots();
+
+        document.getElementById("createBotForm").reset();
+        closeCreateBotModal();
+    }
+
+    function displayBots() {
+        const botList = document.getElementById("botList");
+        botList.innerHTML = ''; // Clear existing list
+
+        bots.forEach((bot, index) => {
+            const botItem = document.createElement("div");
+            botItem.className = "bot-item";
+            botItem.innerHTML = `
+                <img src="${bot.icon}" alt="${bot.botName}">
+                <div>
+                    <strong>${bot.botName}</strong><br>
+                    <span>${bot.botDescription}</span><br>
+                    <span>Email: ${bot.email}</span><br>
+                    <span>License Key: ${bot.licenseKey}</span><br>
+                    <span>Mentor ID: ${bot.mentorId}</span><br>
+                    <span>Expiration Date: ${bot.expirationDate}</span><br>
+                    <span class="${bot.isActive ? 'status-active' : 'status-inactive'}">
+                        Status: ${bot.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                </div>
+                <div>
+                    <button onclick="toggleBotStatus(${index})">
+                        ${bot.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                </div>
+            `;
+            botList.appendChild(botItem);
+        });
+    }
+
+    function toggleBotStatus(index) {
+        bots[index].isActive = !bots[index].isActive; // Toggle active status
+        displayBots(); // Refresh the bot list
+    }
+</script>
+
+</body>
+</html>
